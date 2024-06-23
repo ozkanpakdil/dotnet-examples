@@ -1,4 +1,3 @@
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Xunit.Abstractions;
@@ -17,22 +16,21 @@ public sealed class VariableTracker
     [Fact]
     public void ScanFile()
     {
-        string filePath =
-            @"C:\Users\ozkan\projects\dotnet-examples\tc-guide-getting-started-with-testcontainers-for-dotnet\TestcontainersDemo\CustomerService\CustomerService.cs";
-        string code = File.ReadAllText(filePath);
+        const string filePath = "../../../../CustomerService/CustomerService.cs";
+        var code = File.ReadAllText(filePath);
 
-        SyntaxTree tree = CSharpSyntaxTree.ParseText(code);
+        var tree = CSharpSyntaxTree.ParseText(code);
         var root = (CompilationUnitSyntax)tree.GetRoot();
 
         var variableCollector = new VariableCollector();
         variableCollector.Visit(root);
 
         _testOutputHelper.WriteLine("\nVariable Assignments:");
-        foreach (var assignment in variableCollector.Assignments)
-        {
-            if (assignment.Key.ToLower().Contains("command"))
-                _testOutputHelper.WriteLine($"Variable: {assignment.Key}, Assigned Value: {assignment.Value}");
-        }
+        variableCollector.Assignments
+            .Where(assignment => assignment.Key.ToLower().Contains("command"))
+            .Select(assignment => $"Variable: {assignment.Key}, Assigned Value: {assignment.Value}")
+            .ToList()
+            .ForEach(_testOutputHelper.WriteLine);
     }
 
     private class VariableCollector : CSharpSyntaxWalker
