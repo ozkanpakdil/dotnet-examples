@@ -1,0 +1,4 @@
+﻿FROM registry.suse.com/suse/postgres:latest
+USER root
+RUN zypper update
+RUN zypper install -y gawk
