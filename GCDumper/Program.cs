@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.IO.Compression;
 using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.Diagnostics.Runtime;
@@ -17,6 +18,7 @@ class Program
     static extern bool CloseHandle(IntPtr hObject);
 
     const int MiniDumpWithFullMemory = 2;
+    private const string ZipFilePath = "alldump-output.zip";
 
     static async Task Main(string[] args)
     {
@@ -76,6 +78,24 @@ class Program
 
         Console.WriteLine($"Found process '{processName}' with ID: {process.Id}");
 
+        if (memDump)
+        {
+            var drive = new DriveInfo(Path.GetPathRoot(Environment.CurrentDirectory) ?? throw new InvalidOperationException());
+            var availableSpace = drive.AvailableFreeSpace;
+
+            var processMemory = process.WorkingSet64;
+            var estimatedDumpSize = processMemory + (processMemory * 0.1); // add 10% for overhead
+
+            if (estimatedDumpSize > availableSpace)
+            {
+                Console.WriteLine("Warning: Available disk space is insufficient to create memory dump.");
+                Console.WriteLine($"Available space: {availableSpace / (1024 * 1024)} MB");
+                Console.WriteLine($"Estimated dump size: {estimatedDumpSize / (1024 * 1024)} MB");
+                Console.WriteLine("Disabling memory dump creation.");
+                memDump = false; // set memDump to false to prevent dump creation
+            }
+        }
+        
         if (dumpBeforeGc)
         {
             Console.WriteLine("Taking thread dump before GC");
@@ -106,6 +126,45 @@ class Program
         }
 
         Console.WriteLine("Process completed. Dumps have been created in the current directory.");
+
+        GenerateZipForOutput();
+    }
+
+    private static void GenerateZipForOutput()
+    {
+        const string sourceDirectory = "./";
+
+        Console.WriteLine("Creating zip file...");
+
+        using var archive = ZipFile.Open(ZipFilePath, ZipArchiveMode.Create);
+        long totalFileSize = 0;
+        var filesToZip = Directory.GetFiles(sourceDirectory)
+            .Where(file => Path.GetExtension(file).Equals(".dmp", StringComparison.OrdinalIgnoreCase)
+                           || file.Contains("thread_dump", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        var fileCount = filesToZip.Count;
+
+        for (var i = 0; i < fileCount; i++)
+        {
+            var file = filesToZip[i];
+            var fileName = Path.GetFileName(file);
+            var fileInfo = new FileInfo(file);
+            totalFileSize += fileInfo.Length;
+
+            archive.CreateEntryFromFile(file, fileName, CompressionLevel.Fastest);
+
+            Console.Write($"\rAdding file {i + 1} of {fileCount} ({(i + 1) * 100 / fileCount}%)");
+        }
+        
+        var zipFileSizeMb = new FileInfo(ZipFilePath).Length / (1024.0 * 1024.0);
+        var totalFileSizeMb = totalFileSize / (1024.0 * 1024.0);
+
+        Console.WriteLine("\nZip file created successfully.");
+        Console.WriteLine($"Zip file size: {zipFileSizeMb:F2} MB");
+        Console.WriteLine($"Total files size: {totalFileSizeMb:F2} MB");
+        Console.WriteLine(
+            $"Compression ratio: {(1 - (double)new FileInfo(ZipFilePath).Length / totalFileSize) * 100:F2}%");
     }
 
     private static Process GetProcess(string processName)
@@ -123,7 +182,7 @@ class Program
         return processes[0];
     }
 
-    static async Task CreateDump(uint processId, string fileName)
+    private static async Task CreateDump(uint processId, string fileName)
     {
         var handle = OpenProcess(0x001F0FFF, false, processId);
         if (handle == IntPtr.Zero)
@@ -196,6 +255,7 @@ class Program
                         sb.AppendLine("Stack Trace:");
                         sb.AppendLine(stackTrace);
                     }
+
                     sb.AppendLine();
                 }
             }
@@ -227,19 +287,6 @@ class Program
         var sb = new StringBuilder();
 
         foreach (var frame in thread.EnumerateStackTrace())
-        {
-            sb.AppendLine($"  {frame.ToString()}");
-        }
-
-        return sb.ToString();
-    }
-
-    private static string GetStackTrace(ClrThread thread)
-    {
-        var sb = new StringBuilder();
-        var stackTrace = thread.EnumerateStackTrace();
-
-        foreach (var frame in stackTrace)
         {
             sb.AppendLine($"  {frame.ToString()}");
         }
