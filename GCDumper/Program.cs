@@ -2,6 +2,7 @@
 using System.IO.Compression;
 using System.Runtime.InteropServices;
 using System.Text;
+using GCDumper;
 using Microsoft.Diagnostics.Runtime;
 
 class Program
@@ -18,7 +19,6 @@ class Program
     static extern bool CloseHandle(IntPtr hObject);
 
     const int MiniDumpWithFullMemory = 2;
-    private const string ZipFilePath = "alldump-output.zip";
 
     static async Task Main(string[] args)
     {
@@ -80,7 +80,8 @@ class Program
 
         if (memDump)
         {
-            var drive = new DriveInfo(Path.GetPathRoot(Environment.CurrentDirectory) ?? throw new InvalidOperationException());
+            var drive = new DriveInfo(Path.GetPathRoot(Environment.CurrentDirectory) ??
+                                      throw new InvalidOperationException());
             var availableSpace = drive.AvailableFreeSpace;
 
             var processMemory = process.WorkingSet64;
@@ -95,7 +96,7 @@ class Program
                 memDump = false; // set memDump to false to prevent dump creation
             }
         }
-        
+
         if (dumpBeforeGc)
         {
             Console.WriteLine("Taking thread dump before GC");
@@ -104,7 +105,7 @@ class Program
                 await CreateDump((uint)process.Id, "dump_before_gc.dmp");
         }
 
-        ForceGC(process.Id);
+        ForceGc(process.Id);
 
         if (memDump)
             await CreateDump((uint)process.Id, "dump_after_gc.dmp");
@@ -136,7 +137,10 @@ class Program
 
         Console.WriteLine("Creating zip file...");
 
-        using var archive = ZipFile.Open(ZipFilePath, ZipArchiveMode.Create);
+        var zipFileName = $"dumps_{DateTime.Now:yyyyMMddHHmmss}.zip";
+        var zipFilePath = Path.Combine(sourceDirectory, zipFileName);
+
+        using var archive = ZipFile.Open(zipFilePath, ZipArchiveMode.Create);
         long totalFileSize = 0;
         var filesToZip = Directory.GetFiles(sourceDirectory)
             .Where(file => Path.GetExtension(file).Equals(".dmp", StringComparison.OrdinalIgnoreCase)
@@ -156,15 +160,16 @@ class Program
 
             Console.Write($"\rAdding file {i + 1} of {fileCount} ({(i + 1) * 100 / fileCount}%)");
         }
-        
-        var zipFileSizeMb = new FileInfo(ZipFilePath).Length / (1024.0 * 1024.0);
+
+        var zipFileSizeMb = new FileInfo(zipFilePath).Length / (1024.0 * 1024.0);
         var totalFileSizeMb = totalFileSize / (1024.0 * 1024.0);
 
-        Console.WriteLine("\nZip file created successfully.");
+        Console.WriteLine("\nZip file created successfully: " + zipFilePath);
         Console.WriteLine($"Zip file size: {zipFileSizeMb:F2} MB");
-        Console.WriteLine($"Total files size: {totalFileSizeMb:F2} MB");
+        Console.WriteLine($"Total files size(all dumps): {totalFileSizeMb:F2} MB");
         Console.WriteLine(
-            $"Compression ratio: {(1 - (double)new FileInfo(ZipFilePath).Length / totalFileSize) * 100:F2}%");
+            $"Compression ratio: {(1 - (double)new FileInfo(zipFilePath).Length / totalFileSize) * 100:F2}%");
+        Console.WriteLine("Please send the zip file to the support for further investigation.");
     }
 
     private static Process GetProcess(string processName)
@@ -208,14 +213,11 @@ class Program
         await Task.CompletedTask;
     }
 
-    private static void ForceGC(int processId)
+    private static void ForceGc(int processId)
     {
         try
         {
-            var process = Process.GetProcessById(processId);
-            process.Refresh();
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
+            GcHelper.ForceGc("forcegc", processId, Console.Out);
             Console.WriteLine($"Requested GC on process {processId}");
         }
         catch (Exception ex)
@@ -288,7 +290,7 @@ class Program
 
         foreach (var frame in thread.EnumerateStackTrace())
         {
-            sb.AppendLine($"  {frame.ToString()}");
+            sb.AppendLine($"  {frame}");
         }
 
         return sb.ToString();
