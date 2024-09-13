@@ -1,11 +1,13 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
 using System.Text;
-using GCDumper;
 using Microsoft.Diagnostics.Runtime;
 
-class Program
+namespace GCDumper;
+
+internal class Program
 {
     [DllImport("Dbghelp.dll")]
     static extern bool MiniDumpWriteDump(IntPtr hProcess, uint ProcessId, IntPtr hFile, int DumpType,
@@ -20,6 +22,7 @@ class Program
 
     const int MiniDumpWithFullMemory = 2;
 
+    [RequiresDynamicCode("Calls GCDumper.Program.CaptureThreadDump(Process, String)")]
     static async Task Main(string[] args)
     {
         if (args.Length < 1)
@@ -172,7 +175,7 @@ class Program
         Console.WriteLine("Please send the zip file to the support for further investigation.");
     }
 
-    private static Process GetProcess(string processName)
+    public static Process GetProcess(string processName)
     {
         var processes = Process.GetProcessesByName(processName);
         switch (processes.Length)
@@ -226,7 +229,8 @@ class Program
         }
     }
 
-    private static async Task CaptureThreadDump(Process process, string suffix)
+    [RequiresDynamicCode("Calls System.Enum.GetValues(Type)")]
+    public static async Task CaptureThreadDump(Process process, string suffix)
     {
         var sb = new StringBuilder();
         sb.AppendLine($"Thread Dump for process {process.ProcessName} (ID: {process.Id}) at {DateTime.Now}");
@@ -242,10 +246,19 @@ class Program
             {
                 foreach (var thread in runtime.Threads)
                 {
-                    sb.AppendLine($"Thread ID: {thread.OSThreadId}");
-                    sb.AppendLine($"Managed Thread ID: {thread.ManagedThreadId}");
-                    sb.AppendLine($"Is GC Thread: {thread.IsGc}");
-                    sb.AppendLine($"Is Finalizer Thread: {thread.IsFinalizer}");
+                    sb.Append($"\nThread ID: {thread.OSThreadId}");
+                    sb.Append($",Managed Thread ID: {thread.ManagedThreadId}");
+                    sb.Append($",Is GC Thread: {thread.IsGc}");
+                    var stateString = string.Join(", ", 
+                        Enum.GetValues(typeof(ClrThreadState))
+                            .Cast<ClrThreadState>()
+                            .Where(s => thread.State.HasFlag(s))
+                            .Select(s => s.ToString()));
+
+                    sb.Append($",State: {stateString}");
+                    sb.Append($",IsAlive: {thread.IsAlive}");
+                    sb.Append($",GC Mode: {thread.GCMode}");
+                    sb.Append($",Is Finalizer Thread: {thread.IsFinalizer}");
 
                     var threadCpuTime = GetThreadCpuTime(thread.OSThreadId);
                     sb.AppendLine($"Thread CPU Time: {threadCpuTime.TotalMilliseconds:F2} ms");
