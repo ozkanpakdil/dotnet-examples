@@ -1,6 +1,4 @@
 name: .NET Build
-author: Ozkan Pakdil
-description: Performs steps required to push a versioned NuGet package to the official NuGet and/or GitHub packages feeds.
 
 on:
   push:
