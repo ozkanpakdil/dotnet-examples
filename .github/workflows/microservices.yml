@@ -38,3 +38,4 @@ jobs:
             ./microservices/Dotnet7Microservice/bin/Release/net7.0/linux-x64/native/Dotnet7Microservice
             ./microservices/Dotnet8Microservice/bin/Release/net8.0/linux-x64/native/Dotnet8Microservice
             ./microservices/Dotnet9Microservice/bin/Release/net9.0/linux-x64/native/Dotnet9Microservice
+          id: "automatic_releases"
