@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <StripSymbols>true</StripSymbols>
+        <PublishTrimmed>true</PublishTrimmed>
+        <EnableRequestDelegateGenerator>true</EnableRequestDelegateGenerator>
+        <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.0"/>
+        <PackageReference Include="NSwag.AspNetCore" Version="14.1.0"/>
+    </ItemGroup>
+</Project>
