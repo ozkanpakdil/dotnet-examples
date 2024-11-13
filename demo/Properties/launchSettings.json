@@ -1,0 +1,23 @@
+﻿{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "Dotnet8Microservice": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "applicationUrl": "http://localhost:8080",
+      "environmentVariables": {
+        "OTEL_SERVICE_NAME": "my-service-name",
+        "OTEL_EXPORTER_OTLP_PROTOCOL": "http/protobuf",
+        "OTEL_EXPORTER_OTLP_ENDPOINT": "https://api.honeycomb.io",
+        "OTEL_EXPORTER_OTLP_HEADERS": "x-honeycomb-team=zmcS8gznTPSMgkSFv4NRTC",
+        "OTEL_LOG_LEVEL": "debug",
+        "OTEL_LOGS_EXPORTER": "console",
+        "OTEL_METRIC_EXPORT_INTERVAL": "10",
+        "OTEL_METRIC_EXPORT_TIMEOUT": "1",
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}

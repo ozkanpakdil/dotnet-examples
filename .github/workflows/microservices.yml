@@ -1,0 +1,32 @@
+name: .NET Build
+author: Ozkan Pakdil
+description: Performs steps required to push a versioned NuGet package to the official NuGet and/or GitHub packages feeds.
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          7.0.x
+          8.0.x
+          9.0.x
+
+    - name: dotnet restore
+      shell: bash
+      run: |
+        dotnet publish --configuration Release  ./microservices/Dotnet7Microservice/
+        dotnet publish --configuration Release  ./microservices/Dotnet8Microservice/
+        dotnet publish --configuration Release  ./microservices/Dotnet9Microservice/
+ 
+    - uses: "marvinpinto/action-automatic-releases@latest"
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        automatic_release_tag: "latest"
+        prerelease: true
+        title: "Development Build"
+        files: |
+          ./microservices/Dotnet7Microservice/bin/Release/net7.0/linux-x64/native/Dotnet7Microservice
+          ./microservices/Dotnet8Microservice/bin/Release/net8.0/linux-x64/native/Dotnet8Microservice
+          ./microservices/Dotnet9Microservice/bin/Release/net9.0/linux-x64/native/Dotnet9Microservice
