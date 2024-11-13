@@ -19,7 +19,7 @@ jobs:
             8.0.x
             9.0.x
 
-      - name: dotnet restore
+      - name: dotnet publish
         shell: bash
         run: |
           dotnet publish --configuration Release  ./microservices/Dotnet7Microservice/
