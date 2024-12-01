@@ -1,7 +1,7 @@
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
-// builder.Logging.ClearProviders();
+builder.Logging.ClearProviders();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options => { options.JsonSerializerOptions.TypeInfoResolverChain.Add(MyContext.Default); });
