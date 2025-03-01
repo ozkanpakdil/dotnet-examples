@@ -9,7 +9,7 @@ builder.Services.AddControllers()
 var app = builder.Build();
 app.UseAuthorization();
 app.MapGet("/hello", () => 
-    Results.Json(new ApplicationInfo() { Year = DateTime.Now.Year, Name = "dotnet8" }, MyContext.Default.ApplicationInfo)
+    Results.Json(new ApplicationInfo() { year = DateTime.Now.Year, name = "dotnet8" }, MyContext.Default.ApplicationInfo)
 );
 app.Run("http://localhost:8080");
 

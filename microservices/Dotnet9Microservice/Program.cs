@@ -9,7 +9,7 @@ builder.Services.AddControllers()
 var app = builder.Build();
 app.UseAuthorization();
 app.MapGet("/hello", () => 
-    Results.Json(new ApplicationInfo() { Year = DateTime.Now.Year, Name = "dotnet9" }, MyContext.Default.ApplicationInfo)
+    Results.Json(new ApplicationInfo() { year = DateTime.Now.Year, name = "dotnet9" }, MyContext.Default.ApplicationInfo)
 );
 app.Run("http://localhost:8080");
 
@@ -21,6 +21,6 @@ internal partial class MyContext : JsonSerializerContext
 
 public record ApplicationInfo
 {
-    public int Year { get; set; }
+    public int year { get; set; }
     public string? name { get; set; }
 }
