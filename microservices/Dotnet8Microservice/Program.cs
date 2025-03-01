@@ -21,6 +21,6 @@ internal partial class MyContext : JsonSerializerContext
 
 public record ApplicationInfo
 {
-    public int Year { get; set; }
-    public string? Name { get; set; }
+    public int year { get; set; }
+    public string? name { get; set; }
 }
